@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow
+		name="db-salesforce-synchronization-customer-data-integration"
+		doc:id="30221bc0-5cbc-40fc-8d8b-139403ea55ac">
+		<db:listener doc:name="On Table Row"
+			doc:id="1d656219-8063-4e79-8c7d-14f638a82665"
+			config-ref="Database_Config" table="Customer"
+			watermarkColumn="LastModifiedDate">
+			<scheduling-strategy>
+				<fixed-frequency frequency="10" timeUnit="SECONDS" />
+			</scheduling-strategy>
+		</db:listener>
+		<flow-ref doc:name="Flow Reference"
+			doc:id="753f5e17-5d05-4b19-8597-999f25ab5bc4"
+			name="db-to-sfdc-synchronization-imp" />
+	</flow>
+	<flow
+		name="salesforce-db-synchronization-customer-data-integration"
+		doc:id="c14f24a2-6adc-4a24-a619-269e4de05154">
+		<salesforce:modified-object-listener
+			doc:name="On Modified Object"
+			doc:id="0dc961ae-7ded-4a5c-861b-e017ffc287eb"
+			config-ref="Salesforce_Config" objectType="Contact">
+			<scheduling-strategy>
+				<fixed-frequency frequency="10" timeUnit="SECONDS" />
+			</scheduling-strategy>
+		</salesforce:modified-object-listener>
+		<flow-ref doc:name="Flow Reference"
+			doc:id="3999a637-9913-41ec-8514-161f1b4dc6de"
+			name="sfdc-to-db-synchronization-imp" />
+	</flow>
+</mule>

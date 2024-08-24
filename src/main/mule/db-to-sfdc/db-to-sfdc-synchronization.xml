@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<sub-flow name="db-to-sfdc-synchronization-imp" doc:id="be9c5e64-489d-415c-ba89-04ebbae25191" >
+		<ee:transform doc:name="Customer payload converting into json" doc:id="36dfbda2-f81d-4e79-85a3-d3321b7f031c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="Email" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.Email]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:query doc:name="Query :sfdcContactResponse" doc:id="9a10a488-b281-42bf-bb62-2bfe81e19590" config-ref="Salesforce_Config" target="sfdcContactResponse">
+			<salesforce:salesforce-query ><![CDATA[SELECT id,Email FROM Contact where Email = :Email]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"Email" : "'$(vars.Email)'"
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<choice doc:name="contact data present?" doc:id="b2acb90a-a159-4006-9fd0-703948d9f5cb" >
+			<when expression="#[!isEmpty(vars.sfdcContactResponse)]">
+				<ee:transform doc:name="target mapping" doc:id="8061b5e6-6388-4c31-ac7d-b3cfe26a8d17" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[payload] map{
+	"Id": vars.sfdcContactResponse.Id[0],
+	"FirstName": $.FirstName default '',
+	"LastName": $.LastName  default '',
+	"Email": $.Email,
+	"Phone": $.Phone
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:update doc:name="Update" doc:id="3831c6aa-693d-4da4-a227-67804e5bee75" config-ref="Salesforce_Config" type="Contact"/>
+				<ee:transform doc:name="contact update response" doc:id="70954d6b-fe3e-421c-956b-5a06ec52bc3a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="5b2637f4-f64d-4265-bc38-a62602f128b8" message="#[%dw 2.0&#10;output application/json&#10;---&#10;if ( payload.successful ~= true ) ('data updated in sfdc for Email : ' ++ vars.Email default 'unknown')&#10;else(payload.items.payload.errors..message joinBy &quot; &quot;)]"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="target mapping" doc:id="bfad51de-ced5-40ef-b8b3-a8af946f8b70" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[payload] map{
+	"FirstName": $.FirstName default '',
+	"LastName": $.LastName  default '',
+	"Email": $.Email,
+	"Phone": $.Phone
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:create doc:name="Create" doc:id="61d40e38-53b0-4060-81d5-a38197aea49b" config-ref="Salesforce_Config" type="Contact"/>
+				<ee:transform doc:name="contact update response" doc:id="7e28f222-7577-45e2-b1f4-c90257c793b5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="9ee1ede3-e9b8-4afd-85ef-f232d262197b" message="#[%dw 2.0&#10;output application/json&#10;---&#10;if ( payload.successful ~= true ) ('Data created in sfdc for Email : ' ++ (vars.Email default 'unknown'))&#10;else(payload.items.payload.errors..message joinBy &quot; &quot;)]" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config"
+		doc:name="Salesforce Config"
+		doc:id="3c1df339-0427-44c1-b7af-e24d768b77a5">
+		<salesforce:basic-connection
+			username="harikiran0211-badf@force.com" password="My@9133146444"
+			securityToken="uYXfuPnCwCN4hQSWenqlarHV" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_Config" doc:name="Database Config"
+		doc:id="cb7dc352-95bf-4086-bb15-8a7c363f211d">
+		<db:my-sql-connection host="localhost"
+			port="3306" user="root" password="root" database="mulesoft" />
+	</db:config>
+</mule>

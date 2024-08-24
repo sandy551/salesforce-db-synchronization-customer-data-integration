@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_35e659bf_dfec_4e85_bed9_01cbadfbfd81_Input_Attributes = Any {"typeId": "java.io.Serializable",
+"typeAlias": "Serializable"}
+

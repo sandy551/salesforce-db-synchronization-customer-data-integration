@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<sub-flow name="sfdc-to-db-synchronization-imp" doc:id="35e659bf-dfec-4e85-bed9-01cbadfbfd81" >
+		<ee:transform doc:name="Contact payload" doc:id="45e70e5c-d99e-4310-a4a5-24bba5ebf726" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:select doc:name="Select :dbCustomerData" doc:id="9ebe5d17-b319-4473-91fd-ff1c9475dbb9" config-ref="Database_Config" target="dbCustomerData">
+			<db:sql ><![CDATA[select Email from Customer where Email = :Email]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'Email' : payload.Email
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Customer Data present?" doc:id="39ff8e82-4a03-4e10-996b-db8e4eea5c1d" >
+			<when expression="#[!isEmpty(vars.dbCustomerData)]">
+				<ee:transform doc:name="target mapping" doc:id="3bca3a7a-bfa7-490a-9ba2-6b3c05a44730" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[payload] map{
+	"Email" : $.Email,
+	"FirstName": $.FirstName default '',
+	"LastName": $.LastName  default '',
+	"Phone": $.Phone
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<db:update doc:name="Update Customer info" doc:id="a269d052-a3b7-4a46-afc4-199a0c576256" config-ref="Database_Config">
+					<db:sql ><![CDATA[UPDATE Customer
+SET 
+	FirstName = :FirstName,
+    LastName = :LastName,
+    Phone = :Phone
+WHERE
+    Email = :Email]]></db:sql>
+					<db:input-parameters ><![CDATA[#[payload[0]]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Customer update response" doc:id="4deeb51e-3447-4f09-ab23-b8f55266d41e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f092fdc4-4311-41f8-9c25-9958de427c88" message="data updated in db for Email : #[vars.dbCustomerData.Email[0]]" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="913251aa-be6d-4b7f-8e95-dbca5db17345" message="Customer Info not present in db for Email : #[payload.Email]" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>
